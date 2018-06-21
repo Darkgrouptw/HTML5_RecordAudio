@@ -5,96 +5,106 @@
 
     var HZRecorder = function (stream, config) {
         config = config || {};
-        config.sampleBits = config.sampleBits || 8;      //採樣數位 8, 16
-        config.sampleRate = config.sampleRate || (44100 / 6);   //取樣速率(1/6 44100)
+        //config.sampleBits = config.sampleBits || 8;             //採樣數位 8, 16
+        //config.sampleRate = config.sampleRate || (44100 / 6);   //取樣速率(1/6 44100)
 
         var context = new (window.webkitAudioContext || window.AudioContext)();
         var audioInput = context.createMediaStreamSource(stream);
         var createScript = context.createScriptProcessor || context.createJavaScriptNode;
-        var recorder = createScript.apply(context, [4096, 1, 1]);
+        var recorder = createScript.apply(context, [4096, 2, 2]);
 
         var audioData = {
-            size: 0                                     //錄音文件長度
-            , buffer: []                                //錄音緩存
-            , inputSampleRate: context.sampleRate       //輸入取樣頻率
-            , inputSampleBits: 16                       //輸入採樣數位 8, 16
-            , outputSampleRate: config.sampleRate       //輸出取樣頻率
-            , oututSampleBits: config.sampleBits        //輸出採樣數位 8, 16
+            size: 0                                     // 錄音文件長度
+            , bufferL: []                               // 左聲道
+            , bufferR: []                               // 右聲道
+            , sampleRate: context.sampleRate            // 取樣頻率
             , input: function (data) {
-                this.buffer.push(new Float32Array(data));
-                this.size += data.length;
+                this.bufferL.push(data[0]);
+                this.bufferR.push(data[1]);
+                this.size += data[0].length;
             }
-            , compress: function () { //合併壓縮
-                //合併
-                var data = new Float32Array(this.size);
+            , mergeBuffers: function(recBuffers, recLength){            // 把 Buffer 何在一起
+                var result = new Float32Array(recLength);
                 var offset = 0;
-                for (var i = 0; i < this.buffer.length; i++) {
-                    data.set(this.buffer[i], offset);
-                    offset += this.buffer[i].length;
-                }
-                //壓縮
-                var compression = parseInt(this.inputSampleRate / this.outputSampleRate);
-                var length = data.length / compression;
-                var result = new Float32Array(length);
-                var index = 0, j = 0;
-                while (index < length) {
-                    result[index] = data[j];
-                    j += compression;
-                    index++;
+                for (var i = 0; i < recBuffers.length; i++){
+                    result.set(recBuffers[i], offset);
+                    offset += recBuffers[i].length;
                 }
                 return result;
             }
+            , interleave: function(inputL, inputR){                     // 左右聲道合在一起
+                var length = inputL.length + inputR.length;
+                var result = new Float32Array(length);
+
+                var index = 0;
+                var inputIndex = 0;
+
+                while (index < length){
+                    result[index++] = inputL[inputIndex];
+                    result[index++] = inputR[inputIndex];
+                    inputIndex++;
+                }
+                return result;
+            }
+            , floatTo16BitPCM: function(output, offset, input){         // Helper Function
+                for (var i = 0; i < input.length; i++, offset+=2){
+                    var s = Math.max(-1, Math.min(1, input[i]));
+                    output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+            }
+            , writeString: function(data, offset, string){             // Helper Function
+                for (var i = 0; i < string.length; i++)
+                    data.setUint8(offset + i, string.charCodeAt(i));
+            }
             , encodeWAV: function () {
-                var sampleRate = Math.min(this.inputSampleRate, this.outputSampleRate);
-                var sampleBits = Math.min(this.inputSampleBits, this.oututSampleBits);
-                var bytes = this.compress();
-                var dataLength = bytes.length * (sampleBits / 8);
-                var buffer = new ArrayBuffer(44 + dataLength);
+                var bufferL = this.mergeBuffers(this.bufferL, this.size);
+                var bufferR = this.mergeBuffers(this.bufferR, this.size);
+                var samples = this.interleave(bufferL, bufferR);
+                
+                var buffer = new ArrayBuffer(44 + samples.length * 2);
                 var data = new DataView(buffer);
 
-                var channelCount = 1;                       //單聲道
-                var offset = 0;
+                /* RIFF identifier */
+                this.writeString(data, 0, 'RIFF');
+                /* file length */
+                data.setUint32(4, 32 + samples.length * 2, true);
+                /* RIFF type */
+                this.writeString(data, 8, 'WAVE');
+                /* format chunk identifier */
+                this.writeString(data, 12, 'fmt ');
+                /* format chunk length */
+                data.setUint32(16, 16, true);
+                /* sample format (raw) */
+                data.setUint16(20, 1, true);
+                /* channel count */
+                data.setUint16(22, 2, true);
+                /* sample rate */
+                data.setUint32(24, this.sampleRate, true);
+                /* byte rate (sample rate * block align) */
+                data.setUint32(28, this.sampleRate * 4, true);
+                /* block align (channel count * bytes per sample) */
+                data.setUint16(32, 4, true);
+                /* bits per sample */
+                data.setUint16(34, 16, true);
+                /* data chunk identifier */
+                this.writeString(data, 36, 'data');
+                /* data chunk length */
+                data.setUint32(40, samples.length * 2, true);
 
-                var writeString = function (str) {
-                    for (var i = 0; i < str.length; i++) {
-                        data.setUint8(offset + i, str.charCodeAt(i));
-                    }
-                }
-                
-                // 寫檔部分
-                writeString('RIFF'); offset += 4;
-                data.setUint32(offset, 36 + dataLength, true); offset += 4;
-                writeString('WAVE'); offset += 4;
-                writeString('fmt '); offset += 4;
-                data.setUint32(offset, 16, true); offset += 4;
-                data.setUint16(offset, 1, true); offset += 2;
-                data.setUint16(offset, channelCount, true); offset += 2;
-                data.setUint32(offset, sampleRate, true); offset += 4;
-                data.setUint32(offset, channelCount * sampleRate * (sampleBits / 8), true); offset += 4;
-                data.setUint16(offset, channelCount * (sampleBits / 8), true); offset += 2;
-                data.setUint16(offset, sampleBits, true); offset += 2;
-                writeString('data'); offset += 4;
-                data.setUint32(offset, dataLength, true); offset += 4;
-                if (sampleBits === 8) {
-                    for (var i = 0; i < bytes.length; i++, offset++) {
-                        var s = Math.max(-1, Math.min(1, bytes[i]));
-                        var val = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                        val = parseInt(255 / (65535 / (val + 32768)));
-                        data.setInt8(offset, val, true);
-                    }
-                } else {
-                    for (var i = 0; i < bytes.length; i++, offset += 2) {
-                        var s = Math.max(-1, Math.min(1, bytes[i]));
-                        data.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-                    }
-                }
+                this.floatTo16BitPCM(data, 44, samples);
 
                 return new Blob([data], { type: 'audio/wav' });
+            }
+            , clear: function() {
+                this.size = 0;
+                this.bufferL = [];
+                this.bufferR = [];
             }
         };
 
         //開始錄音
         this.start = function () {
+            audioData.clear();
             audioInput.connect(recorder);
             recorder.connect(context.destination);
         }
@@ -140,7 +150,10 @@
 
         //音訊採集
         recorder.onaudioprocess = function (e) {
-            audioData.input(e.inputBuffer.getChannelData(0));
+            audioData.input([
+                e.inputBuffer.getChannelData(0),
+                e.inputBuffer.getChannelData(1)
+            ]);
         }
 
     };
@@ -157,16 +170,7 @@
             if (navigator.getUserMedia) {
                 navigator.getUserMedia(
                     { 
-                        "audio": 
-                        {
-                            "mandatory": {
-                                "googEchoCancellation": "false",
-                                "googAutoGainControl": "false",
-                                "googNoiseSuppression": "false",
-                                "googHighpassFilter": "false"
-                            },
-                        "optional": []
-                        }
+                        audio: true
                     } //只啟用音訊
                     , function (stream) {
                         var rec = new HZRecorder(stream, config);
