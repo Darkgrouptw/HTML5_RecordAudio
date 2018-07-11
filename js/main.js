@@ -5,6 +5,7 @@ function startRecording()
     HZRecorder.get(function (rec) {
         recorder = rec;
         recorder.start();
+        //recorder.testOutput($("#testPlay")[0]);
     });
 }
 

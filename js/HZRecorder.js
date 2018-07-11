@@ -3,11 +3,7 @@
     window.URL = window.URL || window.webkitURL;
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-    var HZRecorder = function (stream, config) {
-        config = config || {};
-        //config.sampleBits = config.sampleBits || 8;             //採樣數位 8, 16
-        //config.sampleRate = config.sampleRate || (44100 / 6);   //取樣速率(1/6 44100)
-
+    var HZRecorder = function (stream) {
         var context = new (window.webkitAudioContext || window.AudioContext)();
         var audioInput = context.createMediaStreamSource(stream);
         var createScript = context.createScriptProcessor || context.createJavaScriptNode;
@@ -18,10 +14,23 @@
             , bufferL: []                               // 左聲道
             , bufferR: []                               // 右聲道
             , sampleRate: context.sampleRate            // 取樣頻率
+            , testContext: context
+            , toArray: function(data){                  // Object 轉成 Array
+                return Object.keys(data).map(function(_) { return data[_]; });
+            }
             , input: function (data) {
-                this.bufferL.push(data[0]);
-                this.bufferR.push(data[1]);
-                this.size += data[0].length;
+                // 這邊真的超雷 = =
+                // 結果記憶體是一樣的
+                // 所以才會一直只錄到最後面的聲音
+                // 雷 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                var DeepCopyL = Object.assign({}, data[0]);
+                var DeepCopyArrayL = this.toArray(DeepCopyL);                
+                var DeepCopyR = Object.assign({}, data[1]);
+                var DeepCopyArrayR = this.toArray(DeepCopyR);
+                
+                this.bufferL.push(new Float32Array(DeepCopyArrayL));
+                this.bufferR.push(new Float32Array(DeepCopyArrayR));
+                this.size += DeepCopyArrayL.length;
             }
             , mergeBuffers: function(recBuffers, recLength){            // 把 Buffer 何在一起
                 var result = new Float32Array(recLength);
@@ -56,7 +65,7 @@
                 for (var i = 0; i < string.length; i++)
                     data.setUint8(offset + i, string.charCodeAt(i));
             }
-            , encodeWAV: function () {
+            , encodeWAV: function () {        
                 var bufferL = this.mergeBuffers(this.bufferL, this.size);
                 var bufferR = this.mergeBuffers(this.bufferR, this.size);
                 var samples = this.interleave(bufferL, bufferR);
@@ -101,9 +110,9 @@
                 this.bufferR = [];
             }
         };
-
+        
         //開始錄音
-        this.start = function () {
+        this.start = function () {   
             audioData.clear();
             audioInput.connect(recorder);
             recorder.connect(context.destination);
@@ -125,6 +134,44 @@
             audio.src = window.URL.createObjectURL(this.getBlob());
         }
 
+        this.testOutput = function(audio)
+        {   
+            /*audio.bufferL = "
+            ";*/
+            var a;
+            var b;
+            $.getJSON("https://140.118.127.108/WebAudioRecorder/New/js/test1.json", function(json) {
+                a = Object.keys(json).map(function(_) { return json[_]; });
+                //console.log(json); // this will show the info it in firebug console
+            });
+            $.getJSON("https://140.118.127.108/WebAudioRecorder/New/js/test2.json", function(json) {
+                b = Object.keys(json).map(function(_) { return json[_]; });
+                //console.log(json); // this will show the info it in firebug console
+            });
+            
+            setTimeout(function(){
+                //a = Object.keys(json).map(function(_) { return json[_]; });
+                for(var i =0; i < a.length; i++)
+                {
+                    a[i] = Object.keys(a[i]).map(function(_) { return a[i][_]; });
+                    a[i] = new Float32Array(a[i]);
+                }
+                for(var i =0; i < b.length; i++)
+                {
+                    b[i] = Object.keys(b[i]).map(function(_) { return b[i][_]; });
+                    b[i] = new Float32Array(b[i]);
+                }
+                    
+                audioData.bufferL = a;
+                audioData.bufferR = b;
+                    
+                audioData.size = 86016;
+                audioData.sampleRate = 48000;
+                audio.src = window.URL.createObjectURL(audioData.encodeWAV());
+            },1000);
+            
+        }
+        
         //上傳
         this.upload = function (url, callback) {
             var fd = new FormData();
@@ -150,22 +197,21 @@
 
         //音訊採集
         recorder.onaudioprocess = function (e) {
+            //console.log(e.inputBuffer.getChannelData(0));
+            //console.log(e.inputBuffer.getChannelData(1));
             audioData.input([
                 e.inputBuffer.getChannelData(0),
                 e.inputBuffer.getChannelData(1)
             ]);
         }
-
     };
     //拋出異常
     HZRecorder.throwError = function (message) {
         alert(message);
         throw new function () { this.toString = function () { return message; } }
     }
-    //是否支持錄音
-    HZRecorder.canRecording = (navigator.getUserMedia != null);
     //獲取答錄機
-    HZRecorder.get = function (callback, config) {
+    HZRecorder.get = function (callback) {
         if (callback) {
             if (navigator.getUserMedia) {
                 navigator.getUserMedia(
@@ -173,7 +219,8 @@
                         audio: true
                     } //只啟用音訊
                     , function (stream) {
-                        var rec = new HZRecorder(stream, config);
+                        //var rec = new HZRecorder(stream, config);
+                        var rec = new HZRecorder(stream);
                         callback(rec);
                     }
                     , function (error) {
