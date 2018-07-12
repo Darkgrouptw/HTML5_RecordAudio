@@ -6,19 +6,65 @@
         <title>網路錄音測試</title>
                 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-        <script src="js/main.js"></script>
-        <script src="js/HZRecorder.js"></script>
+        
+        <!-- Recorder -->
+        <script type="text/javascript" src="plugins/HZRecorder/HZRecorder.js"></script>
+        
+        <!-- Boostrap -->
+        <link rel="stylesheet" type="text/css" href="plugins/boostrap_v4.1/css/bootstrap.css">
+        <script type="text/javascript" src="plugins/boostrap_v4.1/js/bootstrap.js"></script>
+        
+        <!-- Full Page -->
+        <link rel="stylesheet" type="text/css" href="plugins/fullpage/fullpage.css">
+        <script type="text/javascript" src="plugins/fullpage/fullpage.js"></script>
+        
+        <!-- Custom CSS -->
+        <link rel="stylesheet" type="text/css" href="css/CustomRecorder.css">
+        <script type="text/javascript" src="js/main.js"></script>
     </head>
     <body>
         
         <!-- 產生一個 Block -->
-        <fieldset>
+        <!--<fieldset>
             <legend>錄音</legend>
             <input onclick="startRecording()" type="button" value="開始錄音">
             <input onclick="stopRecording()" type="button" value="暫停錄音">
             <input onclick="playRecording()" type="button" value="播放" />
             <audio id="testPlay" controls autoplay></audio>
-        </fieldset>
-
+        </fieldset>-->
+        
+        <!-- FullPage -->
+        <div id="fullpage">
+            <div class="section" id="section0">
+                <!-- 第一頁 -->
+                <div class="slide" id="Introduction">
+                    <div class="container text-center">
+                        <h1 class="jumbotron-heading" style="text-align: left;">
+                            歡迎來到信息容器，<br>
+                            體驗過程中，請保持<br>
+                            安靜，並在此等待工<br>
+                            作人員帶領，謝謝。<br>
+                            <br>
+                            Welcome to <br>
+                            Message Container. <br>
+                            Please keep silence <br>
+                            and wait for notifications <br> 
+                            of the staff, thank you . <br>
+                        </h1>
+                        <img src="imgs/WinNum_0.png" class="Introduction_Next"></img>
+                    </div>
+                </div>
+                
+                <!-- 第二頁 -->
+                <div class="slide" id="Recording">
+                    <h1>test2</h1>
+                </div>
+                
+                <!-- 第三頁 -->
+                <div class="slide" id="Ending">
+                    <h1>test3</h1>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
