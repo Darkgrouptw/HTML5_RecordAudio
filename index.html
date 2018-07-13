@@ -38,32 +38,36 @@
             <div class="section" id="section0">
                 <!-- 第一頁 -->
                 <div class="slide" id="Introduction">
-                    <div class="container text-center">
-                        <h1 class="jumbotron-heading" style="text-align: left;">
-                            歡迎來到信息容器，<br>
-                            體驗過程中，請保持<br>
-                            安靜，並在此等待工<br>
-                            作人員帶領，謝謝。<br>
-                            <br>
-                            Welcome to <br>
-                            Message Container. <br>
-                            Please keep silence <br>
-                            and wait for notifications <br> 
-                            of the staff, thank you . <br>
-                        </h1>
-                        <img src="imgs/WinNum_0.png" class="Introduction_Next"></img>
-                    </div>
+                    <img src="imgs/Text/Introduction.png" class="Introduction_Text">
+                    <img src="imgs/IntroductionNextBtn.png" class="Introduction_Arrow" onclick="Introduction_Button_Press()">
                 </div>
                 
                 <!-- 第二頁 -->
                 <div class="slide" id="Recording">
-                    <h1>test2</h1>
+                    <div class="container text-center">
+                        <!-- 錄音前 -->
+                        <div id="before_recorder_div">
+                            <img src="imgs/StartRecord.png" id="RecordingBtn_Start" class="RecordingBtn" onclick="startRecording()">
+                            <img src="imgs/Text/StartRecord.png" class="StartRecord_Text">
+                        </div>
+                        
+                        <!-- 錄音時 -->
+                        <div id="recording_div" style="display: none;">
+                            <img src="imgs/Recording.png" id="RecordingBtn_Start" class="RecordingBtn" onclick="stopRecording()">
+                            <img src="imgs/Text/StartRecord.png" class="StartRecord_Text">
+                            <!--<img src="imgs/WinNum_2.png" id="RecordingBtn_Stop" onclick="stopRecording()" style="display: none;">-->
+                            <audio id="testPlay" controls style="display: none;"></audio>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- 第三頁 -->
                 <div class="slide" id="Ending">
-                    <h1>test3</h1>
+                    <img src="imgs/Text/Ending.png" class="Ending_Text">
                 </div>
+                
+                <!-- Footer -->
+                <img src="imgs/Text/Footer.png" class="Text_Footer">
             </div>
         </div>
     </body>

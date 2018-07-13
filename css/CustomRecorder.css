@@ -1,8 +1,33 @@
-.Introduction_ Next{
-    position: fixed;
-    bottom: 50px;
-    right: 0px;
+.Introduction_Text{
+    position: relative;
+    left: 0px;
+    top: -100px;
+    width: 70%;
+}
+.Introduction_Arrow{
+    position: absolute;
+    bottom: 100px;
+    right: 67%;     /* 這邊是因為有三個 slide，每個 slide 都 33%，所以要貼級的話，一定要 right 66% (33% x 2)  */
     
-    width: 50px;
-    height: 10px;
+    width: 15%;
+}
+.RecordingBtn{
+    border-top: 100px solid transparent;
+    width: 65%;
+}
+
+.StartRecord_Text{
+    border-top: 50px solid transparent;
+    width: 85%;
+}
+.Ending_Text{
+    position: relative;
+    top: -100px;
+    width: 80%;
+}
+.Text_Footer{
+    position: fixed;
+    bottom: 5%;
+    width: 35%;
+    left: 33%;
 }
