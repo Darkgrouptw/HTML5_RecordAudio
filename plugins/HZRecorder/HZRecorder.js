@@ -101,8 +101,9 @@
                 data.setUint32(40, samples.length * 2, true);
 
                 this.floatTo16BitPCM(data, 44, samples);
-
-                return new Blob([data], { type: 'audio/wav' });
+                
+                return data;
+                //return new Blob([data], { type: 'audio/wav' });
             }
             , clear: function() {
                 this.size = 0;
@@ -131,7 +132,8 @@
 
         //重播
         this.play = function (audio) {
-            audio.src = window.URL.createObjectURL(this.getBlob());
+            var BlobData = new Blob([this.getBlob()], { type: "audio/wav" });
+            audio.src = window.URL.createObjectURL(BlobData);
         }
 
         this.testOutput = function(audio)
